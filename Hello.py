@@ -14,7 +14,7 @@ def run():
 
     # Load the data
     data = pd.read_excel("/workspaces/tiempo-respuestas/FECHAS.xlsx")
-FECHAS.xlsx
+
     # App title and description
     st.title("Análisis de Proyectos")
     st.write("Análisis de la duración en meses entre diferentes etapas de los proyectos.")
