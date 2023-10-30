@@ -16,6 +16,28 @@ def run():
     if uploaded_file is not None:
         data = pd.read_excel(uploaded_file)
 
+        # Define the date columns
+        date_columns = ['FechaCartaConsulta', 'FechaAprobacion', 'FechaVigencia', 'FechaElegibilidad', 'FechaPrimeDesembolso']
+
+        # Convert the columns to datetime format (if they aren't already)
+        for col in date_columns:
+            data[col] = pd.to_datetime(data[col])
+
+        # Extract year from each date column and create new columns with year information
+        for col in date_columns:
+            new_col_name = 'AÑO' + col[5:]
+            data[new_col_name] = data[col].dt.year
+
+        # Calculate the difference in months between the specified columns
+        data['Meses_CartaConsulta_Aprobacion'] = (data['FechaAprobacion'] - data['FechaCartaConsulta']).dt.days / 30
+        data['Meses_Aprobacion_Vigencia'] = (data['FechaVigencia'] - data['FechaAprobacion']).dt.days / 30
+        data['Meses_Vigencia_Elegibilidad'] = (data['FechaElegibilidad'] - data['FechaVigencia']).dt.days / 30
+        data['Meses_Elegibilidad_PrimeDesembolso'] = (data['FechaPrimeDesembolso'] - data['FechaElegibilidad']).dt.days / 30
+
+        # Display the first few rows with the new columns
+        st.write(data[['FechaCartaConsulta', 'FechaAprobacion', 'FechaVigencia', 'FechaElegibilidad', 'FechaPrimeDesembolso',
+                       'Meses_CartaConsulta_Aprobacion', 'Meses_Aprobacion_Vigencia', 'Meses_Vigencia_Elegibilidad', 'Meses_Elegibilidad_PrimeDesembolso']].head())
+
         # App title and description
         st.title("Análisis de Proyectos")
         st.write("Análisis de la duración en meses entre diferentes etapas de los proyectos.")
@@ -58,4 +80,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-
