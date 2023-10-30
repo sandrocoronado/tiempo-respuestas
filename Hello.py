@@ -13,7 +13,7 @@ def run():
     )
 
     # Load the data
-    data = pd.read_excel("/workspaces/tiempo-respuestas/FECHAS.xlsx")
+    data = pd.read_excel("/FECHAS.xlsx")
 
     # App title and description
     st.title("Análisis de Proyectos")
