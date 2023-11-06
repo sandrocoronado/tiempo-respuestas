@@ -28,9 +28,13 @@ def run():
         for col in date_columns:
             data['AÑO' + col[5:]] = data[col].dt.year
 
-        # App title and description
-        st.title("Análisis de Proyectos")
-        st.write("Análisis de la duración en meses entre diferentes etapas de los proyectos.")
+        # Find the min and max year from all relevant year columns
+        year_columns = ['AÑO' + col[5:] for col in date_columns]
+        min_year = int(data[year_columns].min().min())
+        max_year = int(data[year_columns].max().max())
+
+        # Slider for year range selection
+        year_range = st.slider('Selecciona el rango de años:', min_value=min_year, max_value=max_year, value=(min_year, max_year))
 
         # User input for country selection
         country = st.selectbox("Selecciona un país:", data['PAIS'].unique())
@@ -48,7 +52,10 @@ def run():
         month_column, year_column = column_mapping[analysis_type]
 
         # Filter data by country and ensure that the months are non-negative and greater than zero
-        filtered_data = data[(data['PAIS'] == country) & (data[month_column] > 0)]
+        filtered_data = data[(data['PAIS'] == country) & (data[month_column] >= 0)]
+
+        # Filter data based on the selected year range
+        filtered_data = filtered_data[(filtered_data[year_column] >= year_range[0]) & (filtered_data[year_column] <= year_range[1])]
 
         # Group by the appropriate year column and calculate the mean of the selected column
         grouped = filtered_data.groupby(year_column)[month_column].mean().reset_index()
