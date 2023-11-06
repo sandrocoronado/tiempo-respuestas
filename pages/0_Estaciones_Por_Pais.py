@@ -58,7 +58,7 @@ def run():
 
         # Count the number of unique operations per year where the difference is calculated
         operations_count = filtered_data.groupby(year_column)['NO. OPERACION'].nunique().reset_index()
-        operations_count.rename(columns={'NO. OPERACION': 'Operaciones Únicas'}, inplace=True)
+        operations_count.rename(columns={'NO. OPERACION': 'Operaciones por Año'}, inplace=True)
 
         # Count the total number of unique operations where the difference is calculated
         operation_total = filtered_data['NO. OPERACION'].nunique()
@@ -70,7 +70,7 @@ def run():
         total_average = final_data[month_column].mean()
         col1, col2 = st.columns(2)
         col1.metric("Promedio Total de Meses", f"{total_average:.2f}")
-        col2.metric("Operaciones Totales", operation_total)
+        col2.metric("Proyectos Totales", operation_total)
 
         # Plotting
         fig, ax = plt.subplots(figsize=(10, 6))
