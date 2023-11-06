@@ -34,9 +34,13 @@ def run():
         data['Meses_Vigencia_Elegibilidad'] = (data['FechaElegibilidad'] - data['FechaVigencia']).dt.days / 30
         data['Meses_Elegibilidad_PrimeDesembolso'] = (data['FechaPrimeDesembolso'] - data['FechaElegibilidad']).dt.days / 30
 
+        # Replace any negative values with 0
+        columns_to_check = ['Meses_CartaConsulta_Aprobacion', 'Meses_Aprobacion_Vigencia', 'Meses_Vigencia_Elegibilidad', 'Meses_Elegibilidad_PrimeDesembolso']
+        for col in columns_to_check:
+            data[col] = data[col].apply(lambda x: max(x, 0))
+
         # Display the first few rows with the new columns
-        st.write(data[['FechaCartaConsulta', 'FechaAprobacion', 'FechaVigencia', 'FechaElegibilidad', 'FechaPrimeDesembolso',
-                       'Meses_CartaConsulta_Aprobacion', 'Meses_Aprobacion_Vigencia', 'Meses_Vigencia_Elegibilidad', 'Meses_Elegibilidad_PrimeDesembolso']].head())
+        st.write(data[['Meses_CartaConsulta_Aprobacion', 'Meses_Aprobacion_Vigencia', 'Meses_Vigencia_Elegibilidad', 'Meses_Elegibilidad_PrimeDesembolso']].head())
 
         # App title and description
         st.title("Análisis de Proyectos")
@@ -58,8 +62,8 @@ def run():
         else:
             column = 'Meses_Elegibilidad_PrimeDesembolso'
 
-        # Filter data by country
-        filtered_data = data[data['PAIS'] == country]
+        # Filter data by country and ensure that the months are non-negative
+        filtered_data = data[(data['PAIS'] == country) & (data[column] >= 0)]
 
         # Group by year of approval and calculate the mean of the selected column
         grouped = filtered_data.groupby('AÑOAprobacion')[column].mean()
@@ -68,7 +72,7 @@ def run():
         fig, ax = plt.subplots(figsize=(10, 6))
         grouped.plot(kind='bar', ax=ax, color='lightblue')
         ax.set_ylabel('Meses')
-        ax.set_xlabel('Año de Aprobación')
+        ax.set_xlabel('Año ')
         ax.set_title(f'{analysis_type} - {country}')
         for bar in ax.patches:
             yval = bar.get_height()
@@ -80,3 +84,5 @@ def run():
 
 if __name__ == "__main__":
     run()
+
+
