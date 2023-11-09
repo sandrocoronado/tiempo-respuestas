@@ -176,7 +176,7 @@ def run():
         st.pyplot(fig)
 
         # Gráfico de barras de KPI a lo largo del tiempo (si los datos lo permiten)
-        st.subheader("Tendencia de KPI a lo largo del tiempo")
+        st.subheader("Tiempo de Respuesta a lo largo del tiempo")
         if len(filtered_df['ANO'].unique()) > 1:
             fig, ax = plt.subplots(figsize=(10, 5))
             # Calculamos el KPI promedio por año y aseguramos que ANO sea entero
