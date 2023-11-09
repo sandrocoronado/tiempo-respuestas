@@ -96,27 +96,21 @@ def run():
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
-        # Configurar el estilo de Seaborn para los gráficos
+       # Configurar el estilo de Seaborn para los gráficos
         sns.set_theme(style="whitegrid")
 
         # Título del Dashboard
         st.title("Dashboard de Eficiencia Operativa")
 
-        # Sidebar para filtros
-        st.sidebar.header("Filtros")
-
-        # Supongamos que 'results_df' es el DataFrame creado anteriormente y contiene los datos necesarios
-
+        # Filtros en la parte superior
         # Filtro de línea temporal para el año
-        if 'ANO' in results_df.columns:
-            years = results_df['ANO'].dropna().astype(int)
-            min_year, max_year = int(years.min()), int(years.max())
-            selected_years = st.sidebar.slider('Selecciona el rango de años:', min_year, max_year, (min_year, max_year))
+        years = results_df['ANO'].dropna().astype(int)
+        min_year, max_year = int(years.min()), int(years.max())
+        selected_years = st.slider('Selecciona el rango de años:', min_year, max_year, (min_year, max_year))
 
         # Filtro por estación con opción "Todas"
-        if 'ESTACIONES' in results_df.columns:
-            all_stations = ['Todas'] + list(results_df['ESTACIONES'].dropna().unique())
-            selected_station = st.sidebar.selectbox('Selecciona una Estación', all_stations)
+        all_stations = ['Todas'] + list(results_df['ESTACIONES'].dropna().unique())
+        selected_station = st.selectbox('Selecciona una Estación', all_stations)
 
         # Aplicar filtros al DataFrame
         filtered_df = results_df[
@@ -126,53 +120,84 @@ def run():
         if selected_station != 'Todas':
             filtered_df = filtered_df[filtered_df['ESTACIONES'].str.contains(selected_station)]
 
-        # Organizar el contenido en bloques
-        # Bloque de estadísticas resumidas
-        st.header("Estadísticas Resumidas")
-        col1, col2 = st.columns(2)
-        col1.metric("Total de Operaciones", len(filtered_df))
-        col2.metric("Eficiencia Promedio de Operaciones", f"{filtered_df['KPI'].mean():.2f}")
-
-        # Mostrar los datos filtrados en el dashboard
-        st.header("Datos Filtrados")
-        st.dataframe(filtered_df)
-
-        # Función auxiliar para agregar etiquetas de valor en los gráficos de barra
-        def add_value_labels(ax, spacing=5):
-            for rect in ax.patches:
-                y_value = rect.get_height()
-                x_value = rect.get_x() + rect.get_width() / 2
-                label = "{:.2f}".format(y_value)
-                ax.annotate(label, (x_value, y_value), xytext=(0, spacing),
-                            textcoords="offset points", ha='center', va='bottom')
+        # Filtrar los datos insuficientes para el gráfico de conteo de productividad
+        filtered_df = filtered_df[filtered_df['Productividad'] != "Datos insuficientes"]
 
         # Incluir gráficos
-        st.header("Gráficos Analíticos")
-        col3, col4 = st.columns(2)
+        st.header("         Análisis de la Eficiencia Operativa")
+        figsize = (7, 5)  # Definir el tamaño de la figura para los gráficos
 
-        with col3:
-            st.subheader("Tiempos de Respuestas en Meses")
-            kpi_avg_by_country = filtered_df.groupby('PAIS')['KPI'].mean().sort_values()
-            fig, ax = plt.subplots()
-            bars = sns.barplot(x=kpi_avg_by_country.index, y=kpi_avg_by_country.values, ax=ax, palette='viridis')
-            add_value_labels(ax)
-            st.pyplot(fig)
+        # Cálculo de KPI Promedio y conteo de operaciones
+        average_kpi = filtered_df['KPI'].mean()
+        operation_count = len(filtered_df)
 
-        with col4:
-            st.subheader("Productividad")
-            productivity_count = filtered_df['Productividad'].value_counts()
-            fig, ax = plt.subplots()
-            bars = sns.barplot(x=productivity_count.index, y=productivity_count.values, ax=ax, palette='Spectral')
-            add_value_labels(ax)
-            st.pyplot(fig)
+        # Mostrar métricas de KPI Promedio y conteo de operaciones
+        st.header("Métricas Clave")
+        col1, col2 = st.columns(2)
+        col1.metric("Tiempo Promedio en Meses", f"{average_kpi:.2f}")
+        col2.metric("Total de Estaciones", operation_count)
+       
+        # Función auxiliar para agregar etiquetas de valor en los gráficos de barra
+        def add_value_labels(ax, is_horizontal=False):
+            for rect in ax.patches:
+                # Obtener las coordenadas X e Y del comienzo de la barra
+                x_value = rect.get_x() + rect.get_width() / 2
+                y_value = rect.get_y() + rect.get_height() / 2
+                # Decidir si la etiqueta es para un gráfico horizontal o vertical
+                if is_horizontal:
+                    value = rect.get_width()
+                    label = f"{int(value)}"  # Convertir a entero y formatear
+                    ax.text(value, y_value, label, ha='left', va='center')
+                else:
+                    value = rect.get_height()
+                    label = f"{int(value)}"  # Convertir a entero y formatear
+                    ax.text(x_value, value, label, ha='center', va='bottom')
 
-        # Gráfico de líneas de KPI a lo largo del tiempo (si los datos lo permiten)
+        # Gráfico de barras de KPI promedio por país con etiquetas de valor
+        st.subheader("Tiempo de Respuesta Promedio en Meses por País")
+        fig, ax = plt.subplots(figsize=figsize)
+        # Asegúrese de que el ordenamiento sea ascendente para que el país con el menor KPI promedio aparezca primero
+        kpi_avg_by_country = filtered_df.groupby('PAIS')['KPI'].mean().sort_values(ascending=True)
+        sns.barplot(x=kpi_avg_by_country.values, y=kpi_avg_by_country.index, ax=ax, palette='viridis')
+        add_value_labels(ax, is_horizontal=True)
+        plt.tight_layout()
+        st.pyplot(fig)
+
+        # Gráfico de barras de conteo de operaciones por nivel de productividad con etiquetas de valor
+        st.subheader("Eficiencia en Tiempos de Respuesta")
+        fig, ax = plt.subplots(figsize=figsize)
+        # Obtenemos el conteo de productividad y lo ordenamos de menor a mayor
+        productivity_count = filtered_df['Productividad'].value_counts().sort_values()
+        # Creamos el gráfico de barras horizontal
+        sns.barplot(x=productivity_count.values, y=productivity_count.index, ax=ax, palette='Spectral')
+        # Llamamos a la función para agregar etiquetas a las barras
+        add_value_labels(ax, is_horizontal=True)
+        plt.tight_layout()
+        st.pyplot(fig)
+
+        # Gráfico de barras de KPI a lo largo del tiempo (si los datos lo permiten)
+        st.subheader("Tendencia de KPI a lo largo del tiempo")
         if len(filtered_df['ANO'].unique()) > 1:
-            st.subheader("Tendencia de KPI a lo largo del tiempo")
-            kpi_trend = filtered_df.groupby('ANO')['KPI'].mean()
-            fig, ax = plt.subplots()
-            sns.lineplot(x=kpi_trend.index, y=kpi_trend.values, ax=ax)
+            fig, ax = plt.subplots(figsize=(10, 5))
+            # Calculamos el KPI promedio por año y aseguramos que ANO sea entero
+            kpi_trend = filtered_df.groupby('ANO')['KPI'].mean().reset_index()
+            kpi_trend['ANO'] = kpi_trend['ANO'].astype(int)  # Convertimos ANO a entero
+            kpi_trend['KPI'] = kpi_trend['KPI'].round().astype(int)  # Redondeamos el KPI a entero
+            # Creamos el gráfico de barras
+            sns.barplot(data=kpi_trend, x='ANO', y='KPI', ax=ax, palette='viridis')
+            # Añadimos las etiquetas de valores a las barras
+            for bar in ax.patches:
+                bar_height = bar.get_height()
+                ax.annotate(f'{int(bar_height)}',
+                            xy=(bar.get_x() + bar.get_width() / 2, bar_height),
+                            xytext=(0, 3),  # 3 puntos de offset vertical
+                            textcoords="offset points",
+                            ha='center', va='bottom')
+            # Mejoramos el layout y mostramos el gráfico
+            plt.tight_layout()
             st.pyplot(fig)
+
+
 
 if __name__ == "__main__":
     run()
