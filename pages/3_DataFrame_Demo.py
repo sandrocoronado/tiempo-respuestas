@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
 import io
+import seaborn as sns
+import matplotlib as plt
+import matplotlib.pyplot as plt
+
+
 
 # Función para calcular la diferencia en meses entre dos fechas
 def calculate_kpi(end_date, start_date):
@@ -90,6 +95,84 @@ def run():
             file_name='resultados_kpi_productividad.xlsx',
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
+
+        # Configurar el estilo de Seaborn para los gráficos
+        sns.set_theme(style="whitegrid")
+
+        # Título del Dashboard
+        st.title("Dashboard de Eficiencia Operativa")
+
+        # Sidebar para filtros
+        st.sidebar.header("Filtros")
+
+        # Supongamos que 'results_df' es el DataFrame creado anteriormente y contiene los datos necesarios
+
+        # Filtro de línea temporal para el año
+        if 'ANO' in results_df.columns:
+            years = results_df['ANO'].dropna().astype(int)
+            min_year, max_year = int(years.min()), int(years.max())
+            selected_years = st.sidebar.slider('Selecciona el rango de años:', min_year, max_year, (min_year, max_year))
+
+        # Filtro por estación con opción "Todas"
+        if 'ESTACIONES' in results_df.columns:
+            all_stations = ['Todas'] + list(results_df['ESTACIONES'].dropna().unique())
+            selected_station = st.sidebar.selectbox('Selecciona una Estación', all_stations)
+
+        # Aplicar filtros al DataFrame
+        filtered_df = results_df[
+            (results_df['ANO'] >= selected_years[0]) &
+            (results_df['ANO'] <= selected_years[1])
+        ]
+        if selected_station != 'Todas':
+            filtered_df = filtered_df[filtered_df['ESTACIONES'].str.contains(selected_station)]
+
+        # Organizar el contenido en bloques
+        # Bloque de estadísticas resumidas
+        st.header("Estadísticas Resumidas")
+        col1, col2 = st.columns(2)
+        col1.metric("Total de Operaciones", len(filtered_df))
+        col2.metric("Eficiencia Promedio de Operaciones", f"{filtered_df['KPI'].mean():.2f}")
+
+        # Mostrar los datos filtrados en el dashboard
+        st.header("Datos Filtrados")
+        st.dataframe(filtered_df)
+
+        # Función auxiliar para agregar etiquetas de valor en los gráficos de barra
+        def add_value_labels(ax, spacing=5):
+            for rect in ax.patches:
+                y_value = rect.get_height()
+                x_value = rect.get_x() + rect.get_width() / 2
+                label = "{:.2f}".format(y_value)
+                ax.annotate(label, (x_value, y_value), xytext=(0, spacing),
+                            textcoords="offset points", ha='center', va='bottom')
+
+        # Incluir gráficos
+        st.header("Gráficos Analíticos")
+        col3, col4 = st.columns(2)
+
+        with col3:
+            st.subheader("Tiempos de Respuestas en Meses")
+            kpi_avg_by_country = filtered_df.groupby('PAIS')['KPI'].mean().sort_values()
+            fig, ax = plt.subplots()
+            bars = sns.barplot(x=kpi_avg_by_country.index, y=kpi_avg_by_country.values, ax=ax, palette='viridis')
+            add_value_labels(ax)
+            st.pyplot(fig)
+
+        with col4:
+            st.subheader("Productividad")
+            productivity_count = filtered_df['Productividad'].value_counts()
+            fig, ax = plt.subplots()
+            bars = sns.barplot(x=productivity_count.index, y=productivity_count.values, ax=ax, palette='Spectral')
+            add_value_labels(ax)
+            st.pyplot(fig)
+
+        # Gráfico de líneas de KPI a lo largo del tiempo (si los datos lo permiten)
+        if len(filtered_df['ANO'].unique()) > 1:
+            st.subheader("Tendencia de KPI a lo largo del tiempo")
+            kpi_trend = filtered_df.groupby('ANO')['KPI'].mean()
+            fig, ax = plt.subplots()
+            sns.lineplot(x=kpi_trend.index, y=kpi_trend.values, ax=ax)
+            st.pyplot(fig)
 
 if __name__ == "__main__":
     run()
