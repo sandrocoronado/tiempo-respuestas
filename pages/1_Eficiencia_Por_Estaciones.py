@@ -194,7 +194,7 @@ def run():
             st.pyplot(fig)
 
         # Reemplazamos el gráfico de "Tiempo de Respuesta a lo largo del tiempo" por el gráfico de barras apiladas
-        st.subheader("KPI Promedio por Año y País")
+        st.subheader("Tiempo Promedio por Año y País")
 
         # Definir la paleta de colores para los países
         country_colors = {
