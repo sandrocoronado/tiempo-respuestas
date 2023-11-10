@@ -235,7 +235,7 @@ def run():
                     ax.text(i, label_y, f'{int(value)}', ha='center', va='center', fontsize=9, color='white')
                     height_accumulator += value
             # Colocar la etiqueta del total acumulado en la parte superior de la barra
-            ax.text(i, height_accumulator, f'{int(height_accumulator)}', ha='center', va='bottom', fontsize=9, color='white')
+            ax.text(i, height_accumulator, f'{int(height_accumulator)}', ha='center', va='bottom', fontsize=9, color='black')
 
         ax.set_ylabel('KPI Promedio')
         ax.set_xlabel('Año')
