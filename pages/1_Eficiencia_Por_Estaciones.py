@@ -5,8 +5,6 @@ import seaborn as sns
 import matplotlib as plt
 import matplotlib.pyplot as plt
 
-
-
 # Función para calcular la diferencia en meses entre dos fechas
 def calculate_kpi(end_date, start_date):
     if pd.isnull(start_date) or pd.isnull(end_date):
@@ -153,27 +151,26 @@ def run():
                     label = f"{int(value)}"  # Convertir a entero y formatear
                     ax.text(x_value, value, label, ha='center', va='bottom')
 
-        # Gráfico de barras de KPI promedio por país con etiquetas de valor
-        st.subheader("Tiempo de Respuesta Promedio en Meses por País")
-        fig, ax = plt.subplots(figsize=figsize)
-        # Asegúrese de que el ordenamiento sea ascendente para que el país con el menor KPI promedio aparezca primero
-        kpi_avg_by_country = filtered_df.groupby('PAIS')['KPI'].mean().sort_values(ascending=True)
-        sns.barplot(x=kpi_avg_by_country.values, y=kpi_avg_by_country.index, ax=ax, palette='viridis')
-        add_value_labels(ax, is_horizontal=True)
-        plt.tight_layout()
-        st.pyplot(fig)
+        # Utilizar st.columns para colocar gráficos lado a lado
+        col1, col2 = st.columns(2)
 
-        # Gráfico de barras de conteo de operaciones por nivel de productividad con etiquetas de valor
-        st.subheader("Eficiencia en Tiempos de Respuesta")
-        fig, ax = plt.subplots(figsize=figsize)
-        # Obtenemos el conteo de productividad y lo ordenamos de menor a mayor
-        productivity_count = filtered_df['Productividad'].value_counts().sort_values()
-        # Creamos el gráfico de barras horizontal
-        sns.barplot(x=productivity_count.values, y=productivity_count.index, ax=ax, palette='Spectral')
-        # Llamamos a la función para agregar etiquetas a las barras
-        add_value_labels(ax, is_horizontal=True)
-        plt.tight_layout()
-        st.pyplot(fig)
+        with col1:
+            st.subheader("Tiempo de Respuesta Promedio en Meses por País")
+            fig, ax = plt.subplots(figsize=figsize)
+            kpi_avg_by_country = filtered_df.groupby('PAIS')['KPI'].mean().sort_values(ascending=True)
+            sns.barplot(x=kpi_avg_by_country.values, y=kpi_avg_by_country.index, ax=ax, palette='viridis')
+            add_value_labels(ax, is_horizontal=True)
+            plt.tight_layout()
+            st.pyplot(fig)
+
+        with col2:
+            st.subheader("Eficiencia en Tiempos de Respuesta")
+            fig, ax = plt.subplots(figsize=figsize)
+            productivity_count = filtered_df['Productividad'].value_counts().sort_values()
+            sns.barplot(x=productivity_count.values, y=productivity_count.index, ax=ax, palette='Spectral')
+            add_value_labels(ax, is_horizontal=True)
+            plt.tight_layout()
+            st.pyplot(fig)
 
         # Gráfico de barras de KPI a lo largo del tiempo (si los datos lo permiten)
         st.subheader("Tiempo de Respuesta a lo largo del tiempo")
