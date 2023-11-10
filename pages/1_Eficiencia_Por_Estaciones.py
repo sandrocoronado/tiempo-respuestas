@@ -125,15 +125,17 @@ def run():
         st.header("         Análisis de la Eficiencia Operativa")
         figsize = (7, 5)  # Definir el tamaño de la figura para los gráficos
 
-        # Cálculo de KPI Promedio y conteo de operaciones
+        # Cálculo de KPI Promedio y conteo de operaciones únicas
         average_kpi = filtered_df['KPI'].mean()
-        operation_count = len(filtered_df)
+        unique_operation_count = filtered_df['CODIGO'].nunique()  # Usamos nunique() para contar códigos únicos
+        total_stations = len(filtered_df)  # Conteo total de estaciones (filas)
 
-        # Mostrar métricas de KPI Promedio y conteo de operaciones
-        st.header("Métricas Clave")
-        col1, col2 = st.columns(2)
+        # Mostrar métricas de KPI Promedio, conteo de operaciones únicas y total de estaciones
+        col1, col2, col3 = st.columns(3)
         col1.metric("Tiempo Promedio en Meses", f"{average_kpi:.2f}")
-        col2.metric("Total de Estaciones", operation_count)
+        col2.metric("Proyectos", unique_operation_count)
+        col3.metric("Total de Estaciones", total_stations)
+
        
         # Función auxiliar para agregar etiquetas de valor en los gráficos de barra
         def add_value_labels(ax, is_horizontal=False):
