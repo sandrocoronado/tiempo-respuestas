@@ -244,13 +244,23 @@ def run():
         plt.tight_layout()
         st.pyplot(fig)
 
-              
+        filtered_df['ANO'] = filtered_df['ANO'].astype(int)     
 
         # Pivotear el DataFrame para obtener el KPI promedio por país y año
         kpi_pivot_df = filtered_df.pivot_table(values='KPI', index='PAIS', columns='ANO', aggfunc='mean')
 
-        # Resetear el índice para llevar 'PAIS' a una columna si es necesario
+        # Redondear todos los valores numéricos a dos decimales
+        kpi_pivot_df = kpi_pivot_df.round(2)
+
+        # Opción para reemplazar los valores None/NaN con un string vacío
+        kpi_pivot_df = kpi_pivot_df.fillna('')
+
+        # Convertir las etiquetas de las columnas a enteros (los años)
+        kpi_pivot_df.columns = kpi_pivot_df.columns.astype(int)
+
+        # Resetear el índice para llevar 'PAIS' a una columna
         kpi_pivot_df.reset_index(inplace=True)
+
 
         # Convertir el DataFrame pivotado a un archivo de Excel para la descarga
         output = io.BytesIO()
