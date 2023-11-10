@@ -94,12 +94,20 @@ def run():
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
-       # Configurar el estilo de Seaborn para los gráficos
+        # Configurar el estilo de Seaborn para los gráficos
         sns.set_theme(style="whitegrid")
 
         # Título del Dashboard
         st.title("Dashboard de Eficiencia Operativa")
 
+        # Definir la paleta de colores para los países
+        country_colors = {
+            "ARGENTINA": "#36A9E1",
+            "BOLIVIA": "#F39200",
+            "BRASIL": "#009640",
+            "PARAGUAY": "#E30613",
+            "URUGUAY": "#27348B"
+        }
         # Filtros en la parte superior
         # Filtro de línea temporal para el año
         years = results_df['ANO'].dropna().astype(int)
@@ -159,9 +167,20 @@ def run():
         with col1:
             st.subheader("Tiempo de Respuesta Promedio en Meses por País")
             fig, ax = plt.subplots(figsize=figsize)
+            
+            # Calcular el KPI promedio por país
             kpi_avg_by_country = filtered_df.groupby('PAIS')['KPI'].mean().sort_values(ascending=True)
-            sns.barplot(x=kpi_avg_by_country.values, y=kpi_avg_by_country.index, ax=ax, palette='viridis')
+            
+            # Crear una lista de colores que coincida con el orden de los países en 'kpi_avg_by_country'
+            country_order = kpi_avg_by_country.index
+            country_palette = [country_colors.get(country, "#333333") for country in country_order]
+
+            # Dibujar el gráfico de barras con la paleta de colores específica
+            sns.barplot(x=kpi_avg_by_country.values, y=country_order, ax=ax, palette=country_palette)
+            
+            # Agregar las etiquetas de valor
             add_value_labels(ax, is_horizontal=True)
+            
             plt.tight_layout()
             st.pyplot(fig)
 
@@ -174,27 +193,83 @@ def run():
             plt.tight_layout()
             st.pyplot(fig)
 
-        # Gráfico de barras de KPI a lo largo del tiempo (si los datos lo permiten)
-        st.subheader("Tiempo de Respuesta a lo largo del tiempo")
-        if len(filtered_df['ANO'].unique()) > 1:
-            fig, ax = plt.subplots(figsize=(10, 5))
-            # Calculamos el KPI promedio por año y aseguramos que ANO sea entero
-            kpi_trend = filtered_df.groupby('ANO')['KPI'].mean().reset_index()
-            kpi_trend['ANO'] = kpi_trend['ANO'].astype(int)  # Convertimos ANO a entero
-            kpi_trend['KPI'] = kpi_trend['KPI'].round().astype(int)  # Redondeamos el KPI a entero
-            # Creamos el gráfico de barras
-            sns.barplot(data=kpi_trend, x='ANO', y='KPI', ax=ax, palette='viridis')
-            # Añadimos las etiquetas de valores a las barras
-            for bar in ax.patches:
-                bar_height = bar.get_height()
-                ax.annotate(f'{int(bar_height)}',
-                            xy=(bar.get_x() + bar.get_width() / 2, bar_height),
-                            xytext=(0, 3),  # 3 puntos de offset vertical
-                            textcoords="offset points",
-                            ha='center', va='bottom')
-            # Mejoramos el layout y mostramos el gráfico
-            plt.tight_layout()
-            st.pyplot(fig)
+        # Reemplazamos el gráfico de "Tiempo de Respuesta a lo largo del tiempo" por el gráfico de barras apiladas
+        st.subheader("KPI Promedio por Año y País")
+
+        # Definir la paleta de colores para los países
+        country_colors = {
+            "ARGENTINA": "#36A9E1",
+            "BOLIVIA": "#F39200",
+            "BRASIL": "#009640",
+            "PARAGUAY": "#E30613",
+            "URUGUAY": "#27348B"
+        }
+
+        # Aplicar filtros al DataFrame
+        filtered_df = results_df[
+            (results_df['ANO'] >= selected_years[0]) &
+            (results_df['ANO'] <= selected_years[1])
+        ]
+        if selected_station != 'Todas':
+            filtered_df = filtered_df[filtered_df['ESTACIONES'].str.contains(selected_station)]
+
+        # Preparación de datos para el gráfico de barras apiladas
+        kpi_by_year_country = filtered_df.pivot_table(values='KPI', index='ANO', columns='PAIS', aggfunc='mean').fillna(0)
+        # Aseguramos que los años sean enteros y se muestren como tal en el eje X
+        kpi_by_year_country.index = kpi_by_year_country.index.map(int)
+
+        # Creamos una lista de colores basada en los países presentes en el DataFrame y en el orden correcto
+        colors = [country_colors.get(country, "#333333") for country in kpi_by_year_country.columns]
+
+        # Gráfico de barras apiladas con colores específicos
+        fig, ax = plt.subplots(figsize=(12, 6))
+        kpi_by_year_country.plot(kind='bar', stacked=True, color=colors, ax=ax)
+
+        # Agregar etiquetas de valor a cada segmento de barra
+        for i, (year, values) in enumerate(kpi_by_year_country.iterrows()):
+            height_accumulator = 0  # Acumulador para la altura de las barras
+            for country in values.index:
+                value = values[country]
+                if value > 0:  # Solo agregamos etiquetas a valores positivos
+                    label_y = height_accumulator + (value / 2)
+                    ax.text(i, label_y, f'{int(value)}', ha='center', va='center', fontsize=9, color='white')
+                    height_accumulator += value
+            # Colocar la etiqueta del total acumulado en la parte superior de la barra
+            ax.text(i, height_accumulator, f'{int(height_accumulator)}', ha='center', va='bottom', fontsize=9, color='white')
+
+        ax.set_ylabel('KPI Promedio')
+        ax.set_xlabel('Año')
+        ax.set_xticklabels([str(x) for x in kpi_by_year_country.index], rotation=0)
+        ax.legend(title='País', bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.tight_layout()
+        st.pyplot(fig)
+
+              
+
+        # Pivotear el DataFrame para obtener el KPI promedio por país y año
+        kpi_pivot_df = filtered_df.pivot_table(values='KPI', index='PAIS', columns='ANO', aggfunc='mean')
+
+        # Resetear el índice para llevar 'PAIS' a una columna si es necesario
+        kpi_pivot_df.reset_index(inplace=True)
+
+        # Convertir el DataFrame pivotado a un archivo de Excel para la descarga
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            kpi_pivot_df.to_excel(writer, index=False)
+            # No es necesario llamar a writer.save() aquí, se guarda automáticamente al finalizar el bloque with
+        output.seek(0)  # Regresamos al principio del stream para que streamlit pueda leer el contenido
+
+        # Muestra el DataFrame en la aplicación
+        st.write("Datos Resumidos:")
+        st.dataframe(kpi_pivot_df)
+
+        # Botón de descarga en Streamlit
+        st.download_button(
+            label="Descargar KPI promedio por país y año como Excel",
+            data=output,
+            file_name='kpi_promedio_por_pais_y_año.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
 
 
