@@ -181,6 +181,46 @@ def run():
         plt.tight_layout()
         st.pyplot(fig)
 
+        # Filtrar solo las operaciones con "Alta Demora"
+        alta_demora_df = results_df[
+            (results_df['Productividad'] == 'Alta Demora') &
+            (results_df['ANO'] >= selected_years[0]) &
+            (results_df['ANO'] <= selected_years[1])
+        ]
+
+        # Crear el DataFrame pivotado con el KPI promedio por país y año
+        summary_df = alta_demora_df.pivot_table(
+            values='KPI', 
+            index='PAIS', 
+            columns='ANO', 
+            aggfunc='mean'
+        ).fillna(0)
+
+        # Redondear los valores a dos decimales
+        summary_df = summary_df.round(2)
+
+        # Convertir el índice 'ANO' a enteros
+        summary_df.columns = summary_df.columns.astype(int)
+
+        # Mostrar el DataFrame resumen en la aplicación
+        st.write("Resumen de KPI Promedio por País y Año (Alta Demora):")
+        st.dataframe(summary_df)
+
+        # Convertir el DataFrame resumen a un objeto de bytes Excel para la descarga
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            summary_df.to_excel(writer, index=True)  # index=True para incluir los países en el Excel
+            writer.close()  # No es necesario llamar a save() cuando se usa 'with'
+        output.seek(0)  # Regresar al principio del stream para la descarga
+
+        # Botón de descarga en Streamlit
+        st.download_button(
+            label="Descargar Resumen como Excel",
+            data=output,
+            file_name='resumen_alta_demora.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
 if __name__ == "__main__":
     run()
 
